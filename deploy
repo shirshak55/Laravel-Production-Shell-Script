@@ -1,35 +1,41 @@
 #!/usr/bin/env bash
 
-echo -n "Enter the username: "
-read username
+# First we need to update to latest packages so there should be security and bug fixes
 
-echo -n "Enter the password: "
-read -s password
+sudo apt update
+sudo apt upgrade
 
-adduser "$username"
-echo "$password" | passwd "$username" --stdin
-
-export DEBIAN_FRONTEND=noninteractive
-
-apt-get update
-apt-get -y upgrade
+# Then we will change droplet/virtual machine language 
 
 echo "LC_ALL=en_US.UTF-8" >> /etc/default/locale
 locale-gen en_US.UTF-8
 
+# We will add software toolkit which is essenstial for compiling softwares etc.
+
 apt-get install -y software-properties-common curl
 
-apt-add-repository ppa:nginx/development -y
+#After that in ubuntu repository php is usually old like 7.0 etc and nginx is also old so for the update we will need to add official repositories
 
+apt-add-repository ppa:nginx/development -y
 apt-add-repository ppa:ondrej/php -y
+
+#Now node js uses abit different approach for updating repository its like above command but abit different.
 
 curl --silent --location https://deb.nodesource.com/setup_10.x | bash -
 
-apt-get update
+#We have added repositories but we haven't updated to latest repositories so we update repositories now
 
-apt-get install -y build-essential dos2unix gcc git libmcrypt4 libpcre3-dev libpng-dev ntp unzip  make python2.7-dev python-pip re2c supervisor unattended-upgrades whois vim libnotify-bin pv cifs-utils mcrypt bash-completion zsh graphviz
+sudo apt update
+
+#now lets install software on vm
+
+sudo apt-get install -y build-essential dos2unix gcc git libmcrypt4 libpcre3-dev libpng-dev ntp unzip  make python2.7-dev python-pip re2c supervisor unattended-upgrades whois vim libnotify-bin pv cifs-utils mcrypt bash-completion zsh graphviz
+
+#To change virtualbox/droplet time we type
 
 ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+
+#We will install latest version of php
 
 apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages \
 php7.3-cli php7.3-dev \
@@ -39,34 +45,50 @@ php7.3-imap php7.3-mysql php7.3-mbstring \
 php7.3-xml php7.3-zip php7.3-bcmath php7.3-soap \
 php7.3-intl php7.3-readline
 
+#We need to install dependency manager for php which is composer
+
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 
-sudo sed -i "s/error_reporting = .*/error_reporting = E_ALL/" /etc/php/7.3/cli/php.ini
-sudo sed -i "s/display_errors = .*/display_errors = On/" /etc/php/7.3/cli/php.ini
-sudo sed -i "s/memory_limit = .*/memory_limit = 512M/" /etc/php/7.3/cli/php.ini
-sudo sed -i "s/;date.timezone.*/date.timezone = UTC/" /etc/php/7.3/cli/php.ini
+#Nginx uses php fpm so lets install both nginx and phpfpm
 
 apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages nginx php7.3-fpm
+
+#This will remove default configuration of nginx (That message like your server is runnign etc. We will write this config)
 
 rm /etc/nginx/sites-enabled/default
 rm /etc/nginx/sites-available/default
 
+#First lets create a user name
+
+username="tmm"
+
+#we have added it in variable so that we can reference it later.
+#we need to create username first
+
+adduser "$username"
+
+#Lets create a directory name 
 
 sudo mkdir -p /home/$username/.config/nginx
-sudo chown -R $username:$username /home/$username
+
+#Now we will create own configuration that will point to our laravel installation folder.
 touch /home/$username/.config/nginx/nginx.conf
+
+#We will give perssion to that user to access that folder using  change owner command
+sudo chown -R $username:$username /home/$username
+
+#But we created nginxconfig in our folder like we just created a folder in our ubuntu desktop but nginx don't read our destop it reads configuration from /etc/nginx/sites-available/*.conf file
+#For that we will add shortcut to that folder so nginx will read that config
+
 sudo ln -sf /home/$username/.config/nginx/nginx.conf /etc/nginx/conf.d/nginx.conf
 
-
+#For interacting with ssl sites we need toinstall oepnssl
 
 printf "[openssl]\n" | tee -a /etc/php/7.3/fpm/php.ini
 printf "openssl.cainfo = /etc/ssl/certs/ca-certificates.crt\n" | tee -a /etc/php/7.3/fpm/php.ini
 
-
-printf "[curl]\n" | tee -a /etc/php/7.3/fpm/php.ini
-printf "curl.cainfo = /etc/ssl/certs/ca-certificates.crt\n" | tee -a /etc/php/7.3/fpm/php.ini
-
+#Nginx repositories has screwed up the php fpm config so we need to sometime
 
 cat > /etc/nginx/fastcgi_params << EOF
 fastcgi_param	QUERY_STRING		\$query_string;
@@ -91,46 +113,28 @@ fastcgi_param	REDIRECT_STATUS		200;
 EOF
 
 
+# make php fpm to use user right. Like edima is user let php fpm to use edima permission
+
 sed -i "s/user = www-data/user = $username/" /etc/php/7.3/fpm/pool.d/www.conf
 sed -i "s/group = www-data/group = $username/" /etc/php/7.3/fpm/pool.d/www.conf
 
-service nginx restart
+# now restrat the nginx service
 
-service php7.3-fpm restart
+sudo service nginx restart
+sudo service php7.3-fpm restart
 
+# Lets create a user . Remember we saved username at $username variaable
 
-usermod -a -G www-data $username
-id $username
-groups $username
+Install mysql
+sudo apt install mysql-server
 
-
-
-
-apt-get install -y nodejs
-/usr/bin/npm install -g npm
-/usr/bin/npm install -g gulp-cli
-/usr/bin/npm install -g bower
-/usr/bin/npm install -g yarn
-/usr/bin/npm install -g grunt-cli
-
-
-# Install MySQL
-echo "mysql-server mysql-server/root_password password $password" | debconf-set-selections
-echo "mysql-server mysql-server/root_password_again password $password" | debconf-set-selections
-apt-get install -y mysql-server
-
-echo "default_password_lifetime = 0" >> /etc/mysql/mysql.conf.d/mysqld.cnf
-
-mysql --user="root" --password="$password" -e "GRANT ALL ON *.* TO root@'0.0.0.0' IDENTIFIED BY '$password' WITH GRANT OPTION;"
-service mysql restart
+# Change mysql root password
 
 mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql --user=root --password=secret mysql
 
 service mysql restart
 
-
-
-
+#Enable supervisor which is used to restart unresponsding apps.
 
 systemctl enable supervisor.service
 service supervisor start
@@ -144,12 +148,9 @@ apt-get -y upgrade
 
 apt-get -y autoremove
 apt-get -y clean
-chown -R $username:$username /home/vagrant
 
-
-printf "\nPATH=\"$(sudo su - vagrant -c 'composer config -g home 2>/dev/null')/vendor/bin:\$PATH\"\n" | tee -a /home/vagrant/.profile
+#We may have purchased lowest price machine having low ram. So we can create swap that will serve as ram purpose
 
 /bin/dd if=/dev/zero of=/var/swap.1 bs=1M count=1024
 /sbin/mkswap /var/swap.1
 /sbin/swapon /var/swap.1
-
