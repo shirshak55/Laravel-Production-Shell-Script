@@ -31,8 +31,8 @@ apt-get install -y -qq software-properties-common curl
 
 #After that in ubuntu repository php is usually old like 7.0 etc and nginx is also old so for the update we will need to add official repositories
 
-apt-add-repository ppa:nginx/development -y =qq
-apt-add-repository ppa:ondrej/php -y -qq
+apt-add-repository ppa:nginx/development -y -> /dev/null 2>&1
+apt-add-repository ppa:ondrej/php -y > /dev/null 2>&1
 
 #Now node js uses abit different approach for updating repository its like above command but abit different.
 
