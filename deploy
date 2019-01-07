@@ -147,7 +147,48 @@ mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql --user=root --password=secret my
 
 service mysql restart
 
-#Enable supervisor which is used to restart unresponsding apps.
+# Handle Nginx
+USER_DIR= "/home/$username"
+mkdir $USER_DIR/website
+
+
+
+cat > /home/$username/.config/nginx/nginx.conf << EOF
+server {
+    listen 80;
+    server_name _;
+    root $USER_DIR/website;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options "nosniff";
+
+    index index.html index.htm index.php;
+
+    charset utf-8;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+EOF
+
+# Enable supervisor which is used to restart unresponsding apps.
 
 systemctl enable supervisor.service
 service supervisor start
@@ -158,14 +199,11 @@ cp -r /root/.ssh /home/$username
 chown -R $username:$username /home/$username/.ssh
 
 # One last upgrade check
-
 apt-get -y upgrade
 
 # Clean Up
-
 apt-get -y autoremove
 apt-get -y clean
-
 
 
 # We may have purchased lowest price machine having low ram. So we can create swap that will serve as ram purpose
