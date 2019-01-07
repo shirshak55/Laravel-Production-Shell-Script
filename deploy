@@ -15,8 +15,8 @@ fi
   
 # First we need to update to latest packages so there should be security and bug fixes
 
-sudo apt update
-sudo apt upgrade
+sudo apt update -y -qq
+sudo apt upgrade -y -qq
 
 # Then we will change droplet/virtual machine language 
 
@@ -25,12 +25,12 @@ locale-gen en_US.UTF-8
 
 # We will add software toolkit which is essenstial for compiling softwares etc.
 
-apt-get install -y software-properties-common curl
+apt-get install -y -qq software-properties-common curl
 
 #After that in ubuntu repository php is usually old like 7.0 etc and nginx is also old so for the update we will need to add official repositories
 
-apt-add-repository ppa:nginx/development -y
-apt-add-repository ppa:ondrej/php -y
+apt-add-repository ppa:nginx/development -y =qq
+apt-add-repository ppa:ondrej/php -y -qq
 
 #Now node js uses abit different approach for updating repository its like above command but abit different.
 
@@ -38,11 +38,11 @@ curl --silent --location https://deb.nodesource.com/setup_10.x | bash -
 
 #We have added repositories but we haven't updated to latest repositories so we update repositories now
 
-sudo apt update
+sudo apt update -qq -y
 
 #now lets install software on vm
 
-sudo apt-get install -y build-essential dos2unix gcc git libmcrypt4 libpcre3-dev libpng-dev ntp unzip  make python2.7-dev python-pip re2c supervisor unattended-upgrades whois vim libnotify-bin pv cifs-utils mcrypt bash-completion zsh graphviz
+sudo apt-get install -qq -y build-essential dos2unix gcc git libmcrypt4 libpcre3-dev libpng-dev ntp unzip  make python2.7-dev python-pip re2c supervisor unattended-upgrades whois vim libnotify-bin pv cifs-utils mcrypt bash-completion zsh graphviz
 
 #To change virtualbox/droplet time we type
 
@@ -50,7 +50,7 @@ ln -sf /usr/share/zoneinfo/UTC /etc/localtime
 
 #We will install latest version of php
 
-apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages \
+apt-get install -y -qq --allow-downgrades --allow-remove-essential --allow-change-held-packages \
 php7.3-cli php7.3-dev \
 php7.3-pgsql php7.3-sqlite3 php7.3-gd \
 php7.3-curl \
@@ -65,7 +65,7 @@ mv composer.phar /usr/local/bin/composer
 
 #Nginx uses php fpm so lets install both nginx and phpfpm
 
-apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages nginx php7.3-fpm
+apt-get install -y -qq --allow-downgrades --allow-remove-essential --allow-change-held-packages nginx php7.3-fpm
 
 #This will remove default configuration of nginx (That message like your server is runnign etc. We will write this config)
 
@@ -139,7 +139,7 @@ sudo service php7.3-fpm restart
 # Lets create a user . Remember we saved username at $username variaable
 
 Install mysql
-sudo apt install mysql-server
+sudo apt install -y -qq mysql-server
 
 # Change mysql root password
 
