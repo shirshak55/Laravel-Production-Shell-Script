@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export DEBIAN_FRONTEND=noninteractive
+
 read -p "Enter username : " username
 read -s -p "Enter password : " password
 egrep "^$username" /etc/passwd >/dev/null
